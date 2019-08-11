@@ -1,12 +1,15 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const MongoClient = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID;
 const cors = require('cors');
-const mongoose = require('mongoose');
+//const mongoose = require('mongoose');
 const multer = require('multer');
 const keygen = require('keygenerator');
-const nodemailer = require('nodemailer');   
+const nodemailer = require('nodemailer');
+const fs = require('fs');
+
 
 //CFG Head
 /**MAIL */
@@ -23,12 +26,12 @@ let sendMAil = (key) => {
     let mailOptions = {
         form: 'nevvzbs@gmail.com',
         to: 'nevvord@gmail.com',
-        subject: 'MAIL from NCP',
+        subject: 'MAIL NCP',
         text: `Для входа в акаунт введите: ${key}`
-    
+
     };
-    
-    transporter.sendMail(mailOptions, (err, info)=>{
+
+    transporter.sendMail(mailOptions, (err, info) => {
         err ? console.log(err) : console.log('Email sant: ' + info.response);
     });
 };
@@ -51,21 +54,22 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({
-      storage: storage,
-      limits: {
-        fileSize: 1024 * 1024 * 5
-      },
-      fileFilter: fileFilter
+    storage: storage,
+    limits: {
+        fileSize: 1920 * 1080 * 5
+    },
+    fileFilter: fileFilter
 });
 /** MULTER*/
 /**DB */
 const dbURL = 'mongodb://localhost:27017',
-      dbName = 'sergWork';
+    dbName = 'sergWork';
 /**DB */
 /**EXPRES CORS */
 let app = express(),
     db;
 app.use(express.static('uploads'));
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
     extended: true
@@ -89,38 +93,61 @@ app.use(bodyParser.json({
     limit: '100mb',
     parameterLimit: 100000
 }));
-
-/**
-app.use((req, res, next) => {
-    return next();
-})
- */
 //CFG Head
 //Авторизация
-let key = '', avtorize = false;
-app.post('/login', (req, res)=>{
-    key = keygen._();
-    sendMAil(key);
-    res.sendStatus(200);
+app.post('/login', (req, res) => {
+    const value = keygen._();
+
+    db.collection('key').insert({
+        value,
+        createDate: new Date()
+    }, (err) => {
+        if (err) {
+            console.log(err);
+            return res.sendStatus(500);
+        }
+        sendMAil(value);
+        res.sendStatus(200);
+    });
 });
 
-app.post('/loginKey', (req, res)=>{
-    if (key === req.body.key){
-        avtorize = true;
-        res.send({avtorize: true});
-    }else{
-        avtorize = false;
-        res.send({avtorize: false});
-    }
+app.post('/loginKey', (req, res) => {
+    db.collection('key').find({
+        value: req.body.key
+    }).toArray((err, result) => {
+        if (err) {
+            console.log(err);
+            return res.sendStatus(500);
+        }
+        if (result && result.length) {
+            res.cookie('auth', req.body.key, {
+                httpOnly: true,
+                maxAge: 1000 * 60 * 30
+            }).send({
+                avtorize: true
+            });
+        } else {
+            res.send({
+                avtorize: false
+            });
+        }
+    });
 });
 
-app.get('/login', (req, res)=>{
-    if(avtorize === true){
-        res.send({key: key});
-    }else{
-        res.send({key: false})
-    }
+app.post('/unlog', (req, res) => {
+    db.collection('key').remove({}, (err, result) => {
+        if (err) {
+            console.log(err);
+            return res.sendStatus(500)
+        }
+        res.clearCookie('auth', {
+            httpOnly: true
+        }).send({
+            avtorize: false
+        });
+    });
 });
+
 
 //Авторизация
 // GET
@@ -181,6 +208,37 @@ app.get('/page', (req, res) => {
 });
 
 // GET
+
+//Зашита
+app.use((req, res, next) => {
+    const key = req.cookies.auth;
+    if (!key) {
+        return res.send({
+            avtorize: false
+        })
+    }
+    db.collection('key').find({
+        value: key
+    }).toArray((err, result) => {
+        if (err) {
+            console.log(err);
+            return res.sendStatus(500);
+        }
+        if (result && result.length) {
+            next();
+        } else {
+            res.sendStatus(401);
+        }
+    });
+});
+
+app.get('/keyproof', (req, res) => {
+    return res.send({
+        avtorize: true
+    })
+});
+//Зашита
+
 // POST
 
 app.post('/specialization', upload.single('image'), (req, res, next) => {
@@ -200,7 +258,7 @@ app.post('/specialization', upload.single('image'), (req, res, next) => {
         }
         res.send(body);
         console.log(body);
-        
+
     });
 });
 
@@ -279,55 +337,79 @@ app.post('/page', (req, res, next) => {
 //  Delete, all functions
 
 app.delete('/technology/:id', (req, res) => {
-    db.collection('technology').deleteOne({
-            _id: new ObjectID(req.params.id)
-        },
-        (err, result) => {
-            if (err) {
-                console.log(err);
-                return result.sendStatus(500);
+    db.collection('technology').find({
+        _id: new ObjectID(req.params.id)
+    }).toArray((err, result) => {
+        db.collection('technology').deleteOne({
+                _id: new ObjectID(req.params.id)
+            },
+            (err, resultat) => {
+                if (err) {
+                    console.log(err);
+                    return res.sendStatus(500);
+                }
+                fs.unlink('uploads/' + result[0].file, err => {});
+                res.sendStatus(200)
             }
-            res.sendStatus(200)
-        });
+        );
+    });
 });
 
 app.delete('/specialization/:id', (req, res) => {
-    db.collection('specialization').deleteOne({
-            _id: new ObjectID(req.params.id)
-        },
-        (err, result) => {
-            if (err) {
-                console.log(err);
-                return result.sendStatus(500);
+    db.collection('specialization').find({
+        _id: new ObjectID(req.params.id)
+    }).toArray((err, result) => {
+        db.collection('specialization').deleteOne({
+                _id: new ObjectID(req.params.id)
+            },
+            (err, resultat) => {
+                if (err) {
+                    console.log(err);
+                    return res.sendStatus(500);
+                }
+                fs.unlink('uploads/' + result[0].file, err => {});
+                res.sendStatus(200)
             }
-            res.sendStatus(200)
-        });
+        );
+    });
 });
 
 app.delete('/works/:id', (req, res) => {
-    db.collection('works').deleteOne({
-            _id: new ObjectID(req.params.id)
-        },
-        (err, result) => {
-            if (err) {
-                console.log(err);
-                return result.sendStatus(500);
+    db.collection('works').find({
+        _id: new ObjectID(req.params.id)
+    }).toArray((err, result) => {
+        db.collection('works').deleteOne({
+                _id: new ObjectID(req.params.id)
+            },
+            (err, resultat) => {
+                if (err) {
+                    console.log(err);
+                    return res.sendStatus(500);
+                }
+                fs.unlink('uploads/' + result[0].file, err => {});
+                res.sendStatus(200)
             }
-            res.sendStatus(200)
-        });
+        );
+    });
 });
 
 app.delete('/project/:id', (req, res) => {
-    db.collection('project').deleteOne({
-            _id: new ObjectID(req.params.id)
-        },
-        (err, result) => {
-            if (err) {
-                console.log(err);
-                return result.sendStatus(500);
+    db.collection('project').find({
+        _id: new ObjectID(req.params.id)
+    }).toArray((err, result) => {
+        db.collection('project').deleteOne({
+                _id: new ObjectID(req.params.id)
+            },
+            (err, resultat) => {
+                if (err) {
+                    console.log(err);
+                    return res.sendStatus(500);
+                }
+                fs.unlink('uploads/' + result[0].file, err => {});
+                res.sendStatus(200)
             }
-            res.sendStatus(200)
-        });
+        );
+    });
 });
 
 app.delete('/page/:id', (req, res) => {
@@ -337,7 +419,7 @@ app.delete('/page/:id', (req, res) => {
         (err, result) => {
             if (err) {
                 console.log(err);
-                return result.sendStatus(500);
+                return res.sendStatus(500);
             }
             res.sendStatus(200)
         });
@@ -366,7 +448,7 @@ app.put('/specTech/:id', (req, res) => {
 });
 
 app.put('/project/:id', upload.single('image'), (req, res) => {
-    if(req.file){
+    if (req.file) {
         let body = {
             id: req.params.id,
             name: req.body.name,
@@ -374,26 +456,29 @@ app.put('/project/:id', upload.single('image'), (req, res) => {
             description: req.body.description,
             file: req.file.filename
         };
-        db.collection('project').updateOne({
-                _id: new ObjectID(req.params.id)
-            }, {
-                $set: {
-                    name: req.body.name,
-                    link: req.body.link,
-                    description: req.body.description,
-                    file: req.file.filename,
-                }
-            }, {
-                upsert: true
-            },
-            (err, result) => {
-                if (err) {
-                    console.log(err);
-                    res.sendStatus(500);
-                }
-                res.send(body);
-            });
-    }else{
+        db.collection('project').find(req.params.id).toArray((request, result) => {
+            db.collection('project').updateOne({
+                    _id: new ObjectID(req.params.id)
+                }, {
+                    $set: {
+                        name: req.body.name,
+                        link: req.body.link,
+                        description: req.body.description,
+                        file: req.file.filename,
+                    }
+                }, {
+                    upsert: true
+                },
+                (err, resultat) => {
+                    if (err) {
+                        console.log(err);
+                        res.sendStatus(500);
+                    }
+                    fs.unlink('uploads/' + result[0].file, err => {});
+                    res.send(body);
+                });
+        });
+    } else {
         let body = {
             id: req.params.id,
             name: req.body.name,
@@ -471,28 +556,28 @@ app.put('/specialization/:id', upload.single('image'), (req, res) => {
             file: req.file.filename,
             technology: req.body.technology.split(',')
         };
-        db.collection('specialization').updateOne({
-                _id: new ObjectID(req.params.id)
-            }, {
-                $set: {
-                    id: req.params.id,
-                    name: req.body.name,
-                    description: req.body.description,
-                    file: req.file.filename,
-                    technology: req.body.technology.split(',')
-
-                }
-            }, {
-                upsert: true
-            },
-            (err, result) => {
-                if (err) {
-                    console.log(err);
-                    return res.sendStatus(500);
-                }
-                res.send(bodyReturn);
-            }
-        );
+        db.collection('specialization').find(req.params.id).toArray((request, result) => {
+            db.collection('specialization').updateOne({
+                    _id: new ObjectID(req.params.id)
+                }, {
+                    $set: {
+                        name: req.body.name,
+                        link: req.body.link,
+                        description: req.body.description,
+                        file: req.file.filename,
+                    }
+                }, {
+                    upsert: true
+                },
+                (err, resultat) => {
+                    if (err) {
+                        console.log(err);
+                        res.sendStatus(500);
+                    }
+                    fs.unlink('uploads/' + result[0].file, err => {});
+                    res.send(bodyReturn);
+                });
+        });
     } else {
         let bodyReturn = {
             id: req.params.id,
@@ -551,28 +636,28 @@ app.put('/works/:id', upload.single('image'), (req, res) => {
             file: req.file.filename,
             technology: req.body.technology.split(',')
         };
-        db.collection('works').updateOne({
-                _id: new ObjectID(req.params.id)
-            }, {
-                $set: {
-                    id: req.params.id,
-                    name: req.body.name,
-                    description: req.body.description,
-                    file: req.file.filename,
-                    technology: req.body.technology.split(',')
-
-                }
-            }, {
-                upsert: true
-            },
-            (err, result) => {
-                if (err) {
-                    console.log(err);
-                    return res.sendStatus(500);
-                }
-                res.send(bodyReturn);
-            }
-        );
+        db.collection('works').find(req.params.id).toArray((request, result) => {
+            db.collection('works').updateOne({
+                    _id: new ObjectID(req.params.id)
+                }, {
+                    $set: {
+                        name: req.body.name,
+                        link: req.body.link,
+                        description: req.body.description,
+                        file: req.file.filename,
+                    }
+                }, {
+                    upsert: true
+                },
+                (err, resultat) => {
+                    if (err) {
+                        console.log(err);
+                        res.sendStatus(500);
+                    }
+                    fs.unlink('uploads/' + result[0].file, err => {});
+                    res.send(bodyReturn);
+                });
+        });
     } else {
         let bodyReturn = {
             id: req.params.id,
