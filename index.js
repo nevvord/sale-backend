@@ -122,7 +122,7 @@ app.post('/loginKey', (req, res) => {
         if (result && result.length) {
             res.cookie('auth', req.body.key, {
                 httpOnly: true,
-                maxAge: 1000 * 60 * 30
+                maxAge: 1000 * 60 * 60
             }).send({
                 avtorize: true
             });
@@ -241,11 +241,12 @@ app.get('/keyproof', (req, res) => {
 
 // POST
 
-app.post('/specialization', upload.single('image'), (req, res, next) => {
+app.post('/specialization', upload.single('image'), (req, res) => {
     let body = {
         name: req.body.name,
         description: req.body.description,
         technology: req.body.technology.split(','),
+        projects: req.body.projects.split(','),
         inner: req.body.inner,
         file: req.file.filename
     };
@@ -257,16 +258,15 @@ app.post('/specialization', upload.single('image'), (req, res, next) => {
             return res.sendStatus(500);
         }
         res.send(body);
-        console.log(body);
-
     });
 });
 
-app.post('/works', upload.single('image'), (req, res, next) => {
+app.post('/works', upload.single('image'), (req, res) => {
     let body = {
         name: req.body.name,
         description: req.body.description,
         technology: req.body.technology.split(','),
+        projects: req.body.projects.split(','),
         inner: req.body.inner,
         file: req.file.filename
     };
@@ -281,10 +281,11 @@ app.post('/works', upload.single('image'), (req, res, next) => {
     });
 });
 
-app.post('/project', upload.single('image'), (req, res, next) => {
+app.post('/project', upload.single('image'), (req, res) => {
     let body = {
         name: req.body.name,
         description: req.body.description,
+        inner: req.body.inner,
         link: req.body.link,
         file: req.file.filename
     };
@@ -300,7 +301,7 @@ app.post('/project', upload.single('image'), (req, res, next) => {
 });
 
 
-app.post('/technology', upload.single('image'), (req, res, next) => {
+app.post('/technology', upload.single('image'), (req, res) => {
     let body = {
         name: req.body.name,
         link: req.body.link,
@@ -320,7 +321,8 @@ app.post('/technology', upload.single('image'), (req, res, next) => {
 app.post('/page', (req, res, next) => {
     let body = {
         name: req.body.name,
-        inner: req.body.inner
+        inner: req.body.inner,
+        display: req.body.display
     };
 
 
@@ -447,6 +449,25 @@ app.put('/specTech/:id', (req, res) => {
         });
 });
 
+app.put('/specProj/:id', (req, res) => {
+    db.collection('specialization').updateOne({
+            _id: new ObjectID(req.params.id)
+        }, {
+            $set: {
+                projects: req.body.projects
+            }
+        }, {
+            upsert: true
+        },
+        (err, result) => {
+            if (err) {
+                console.log(err);
+                res.sendStatus(500);
+            }
+            res.sendStatus(200);
+        });
+});
+
 app.put('/project/:id', upload.single('image'), (req, res) => {
     if (req.file) {
         let body = {
@@ -532,7 +553,8 @@ app.put('/page/:id', (req, res) => {
         }, {
             $set: {
                 inner: req.body.inner,
-                name: req.body.name
+                name: req.body.name,
+                display: req.body.display
             }
         }, {
             upsert: true
@@ -554,7 +576,8 @@ app.put('/specialization/:id', upload.single('image'), (req, res) => {
             name: req.body.name,
             description: req.body.description,
             file: req.file.filename,
-            technology: req.body.technology.split(',')
+            technology: req.body.technology.split(','),
+            projects: req.body.projects.split(',')
         };
         db.collection('specialization').find(req.params.id).toArray((request, result) => {
             db.collection('specialization').updateOne({
@@ -562,9 +585,10 @@ app.put('/specialization/:id', upload.single('image'), (req, res) => {
                 }, {
                     $set: {
                         name: req.body.name,
-                        link: req.body.link,
                         description: req.body.description,
                         file: req.file.filename,
+                        technology: req.body.technology.split(','),
+                        projects: req.body.projects.split(',')
                     }
                 }, {
                     upsert: true
@@ -583,7 +607,8 @@ app.put('/specialization/:id', upload.single('image'), (req, res) => {
             id: req.params.id,
             name: req.body.name,
             description: req.body.description,
-            technology: req.body.technology.split(',')
+            technology: req.body.technology.split(','),
+            projects: req.body.projects.split(',')
         };
         db.collection('specialization').updateOne({
                 _id: new ObjectID(req.params.id)
@@ -591,8 +616,8 @@ app.put('/specialization/:id', upload.single('image'), (req, res) => {
                 $set: {
                     name: req.body.name,
                     description: req.body.description,
-                    technology: req.body.technology.split(',')
-
+                    technology: req.body.technology.split(','),
+                    projects: req.body.projects.split(',')
                 }
             }, {
                 upsert: true
@@ -627,6 +652,25 @@ app.put('/workTech/:id', (req, res) => {
         });
 });
 
+app.put('/workProj/:id', (req, res) => {
+    db.collection('works').updateOne({
+            _id: new ObjectID(req.params.id)
+        }, {
+            $set: {
+                projects: req.body.projects
+            }
+        }, {
+            upsert: true
+        },
+        (err, result) => {
+            if (err) {
+                console.log(err);
+                res.sendStatus(500);
+            }
+            res.sendStatus(200);
+        });
+});
+
 app.put('/works/:id', upload.single('image'), (req, res) => {
     if (req.file) {
         let bodyReturn = {
@@ -634,7 +678,8 @@ app.put('/works/:id', upload.single('image'), (req, res) => {
             name: req.body.name,
             description: req.body.description,
             file: req.file.filename,
-            technology: req.body.technology.split(',')
+            technology: req.body.technology.split(','),
+            projects: req.body.projects.split(',')
         };
         db.collection('works').find(req.params.id).toArray((request, result) => {
             db.collection('works').updateOne({
@@ -642,9 +687,10 @@ app.put('/works/:id', upload.single('image'), (req, res) => {
                 }, {
                     $set: {
                         name: req.body.name,
-                        link: req.body.link,
                         description: req.body.description,
                         file: req.file.filename,
+                        technology: req.body.technology.split(','),
+                        projects: req.body.projects.split(',')
                     }
                 }, {
                     upsert: true
@@ -663,7 +709,8 @@ app.put('/works/:id', upload.single('image'), (req, res) => {
             id: req.params.id,
             name: req.body.name,
             description: req.body.description,
-            technology: req.body.technology.split(',')
+            technology: req.body.technology.split(','),
+            projects: req.body.projects.split(',')
         };
         db.collection('works').updateOne({
                 _id: new ObjectID(req.params.id)
@@ -671,7 +718,8 @@ app.put('/works/:id', upload.single('image'), (req, res) => {
                 $set: {
                     name: req.body.name,
                     description: req.body.description,
-                    technology: req.body.technology.split(',')
+                    technology: req.body.technology.split(','),
+                    projects: req.body.projects.split(',')
 
                 }
             }, {
@@ -690,6 +738,26 @@ app.put('/works/:id', upload.single('image'), (req, res) => {
 
 app.put('/workInner/:id', (req, res) => {
     db.collection('works').updateOne({
+            _id: new ObjectID(req.params.id)
+        }, {
+            $set: {
+                inner: req.body.inner
+            }
+        }, {
+            upsert: true
+        },
+        (err, result) => {
+            if (err) {
+                console.log(err);
+                return res.sendStatus(500);
+            }
+            res.sendStatus(200);
+        }
+    );
+});
+
+app.put('/projInner/:id', (req, res) => {
+    db.collection('project').updateOne({
             _id: new ObjectID(req.params.id)
         }, {
             $set: {
