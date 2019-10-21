@@ -1,341 +1,60 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
-const MongoClient = require('mongodb').MongoClient;
-const ObjectID = require('mongodb').ObjectID;
-const cors = require('cors');
-//const mongoose = require('mongoose');
-const multer = require('multer');
-const keygen = require('keygenerator');
-const nodemailer = require('nodemailer');
-const fs = require('fs');
+//const fs = require('fs');
+const   express         =   require('express')
+const   bodyParser      =   require('body-parser')
+const   cookieparser    =   require('cookie-parser')
+const   db              =   require('./db/index')()
+const   cors            =   require('cors')
+const   multer          =   require('./plugins/multer')
 
+//===== Glogal CFG =====
+global.db       = db
+global.express  = express
+global.multer   = multer
 
-//CFG Head
-/**MAIL */
-let transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: 'nevvzbs@gmail.com',
-        pass: 'maska3006556rad'
-    }
-});
+//===== Config sets =====
+const { serverConfig } = require('config')
 
+//===== Set up express APP =====
+const app = express()
 
-let sendMAil = (key) => {
-    let mailOptions = {
-        form: 'nevvzbs@gmail.com',
-        to: 'nevvord@gmail.com',
-        subject: 'MAIL NCP',
-        text: `Для входа в акаунт введите: ${key}`
-
-    };
-
-    transporter.sendMail(mailOptions, (err, info) => {
-        err ? console.log(err) : console.log('Email sant: ' + info.response);
-    });
-};
-
-/**MAIL */
-//Multer
-const fileFilter = (req, file, cb) => {
-    if (file.mimetype === 'image/jpeg' || 'image/png') {
-        cb(null, true);
-    } else {
-        cb(null, false);
-    }
-};
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, './uploads');
-    },
-    filename: (req, file, cb) => {
-        cb(null, new Date().valueOf() + file.originalname);
-    }
-});
-const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 1920 * 1080 * 5
-    },
-    fileFilter: fileFilter
-});
-/** MULTER*/
-/**DB */
-const dbURL = 'mongodb://localhost:27017',
-    dbName = 'sergWork';
-/**DB */
-/**EXPRES CORS */
-let app = express(),
-    db;
-app.use(express.static('uploads'));
-app.use(cookieParser());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({
-    extended: true
-}));
+//===== APP USE =====
+app.use(express.static('uploads'))
+app.use(bodyParser.json())
 app.use(cors({
     credentials: true,
     origin: true,
     optionsSuccessStatus: 200
-}));
-app.options('*', cors({
-    credentials: true,
-    origin: true,
-    optionsSuccessStatus: 200
-}));
-app.use(cors({
-    credentials: true,
-    origin: true,
-    optionsSuccessStatus: 200
-}));
-app.use(bodyParser.json({
-    limit: '100mb',
-    parameterLimit: 100000
-}));
-//CFG Head
-//Авторизация
-app.post('/login', (req, res) => {
-    const value = keygen._();
+}))
+app.use(cookieparser())
 
-    db.collection('key').insert({
-        value,
-        createDate: new Date()
-    }, (err) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        sendMAil(value);
-        res.sendStatus(200);
-    });
-});
-
-app.post('/loginKey', (req, res) => {
-    db.collection('key').find({
-        value: req.body.key
-    }).toArray((err, result) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        if (result && result.length) {
-            res.cookie('auth', req.body.key, {
-                httpOnly: true,
-                maxAge: 1000 * 60 * 60
-            }).send({
-                avtorize: true
-            });
-        } else {
-            res.send({
-                avtorize: false
-            });
-        }
-    });
-});
-
-app.post('/unlog', (req, res) => {
-    db.collection('key').remove({}, (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500)
-        }
-        res.clearCookie('auth', {
-            httpOnly: true
-        }).send({
-            avtorize: false
-        });
-    });
-});
-
-
-//Авторизация
-// GET
+//===== Routes =====
+const auth = require('./routes/auth')
+const api = require('./routes/api/')
 
 app.get('/', (req, res) => {
-    res.send('All Work');
-});
-
-app.get('/works', (req, res) => {
-    db.collection('works').find().toArray((err, docs) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.send(docs);
-
-    });
-});
-
-app.get('/specialization', (req, res) => {
-    db.collection('specialization').find().toArray((err, docs) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.send(docs);
-    });
-});
-
-app.get('/technology', (req, res) => {
-    db.collection('technology').find().toArray((err, docs) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.send(docs);
-    });
-});
-
-app.get('/project', (req, res) => {
-    db.collection('project').find().toArray((err, docs) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.send(docs);
-    });
-});
-
-app.get('/page', (req, res) => {
-    db.collection('page').find().toArray((err, docs) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.send(docs);
-    });
-});
-
-// GET
-
-//Зашита
-app.use((req, res, next) => {
-    const key = req.cookies.auth;
-    if (!key) {
-        return res.send({
-            avtorize: false
-        })
-    }
-    db.collection('key').find({
-        value: key
-    }).toArray((err, result) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        if (result && result.length) {
-            next();
-        } else {
-            res.sendStatus(401);
-        }
-    });
-});
-
-app.get('/keyproof', (req, res) => {
-    return res.send({
-        avtorize: true
+    res.send({
+        api: "worked"
     })
-});
-//Зашита
+})
+app.use('/user', auth.router)
+app.use('/api', api.router)
 
-// POST
-
-app.post('/specialization', upload.single('image'), (req, res) => {
-    let body = {
-        name: req.body.name,
-        description: req.body.description,
-        technology: req.body.technology.split(','),
-        projects: req.body.projects.split(','),
-        inner: req.body.inner,
-        file: req.file.filename
-    };
+//==== Listen Requests =====
+app.listen(serverConfig.port || '3377', serverConfig.host || 'localhost', () => {
+    console.log(`Server has been started in ${serverConfig.host}:${serverConfig.port}`);
+})
 
 
-    db.collection('specialization').insert(body, (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.send(body);
-    });
-});
-
-app.post('/works', upload.single('image'), (req, res) => {
-    let body = {
-        name: req.body.name,
-        description: req.body.description,
-        technology: req.body.technology.split(','),
-        projects: req.body.projects.split(','),
-        inner: req.body.inner,
-        file: req.file.filename
-    };
 
 
-    db.collection('works').insert(body, (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.send(body);
-    });
-});
-
-app.post('/project', upload.single('image'), (req, res) => {
-    let body = {
-        name: req.body.name,
-        description: req.body.description,
-        inner: req.body.inner,
-        link: req.body.link,
-        file: req.file.filename
-    };
 
 
-    db.collection('project').insert(body, (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.send(body);
-    });
-});
 
 
-app.post('/technology', upload.single('image'), (req, res) => {
-    let body = {
-        name: req.body.name,
-        link: req.body.link,
-        file: req.file.filename
-    };
 
 
-    db.collection('technology').insert(body, (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.send(body);
-    });
-});
+/*
 
-app.post('/page', (req, res, next) => {
-    let body = {
-        name: req.body.name,
-        inner: req.body.inner,
-        display: req.body.display
-    };
-
-
-    db.collection('page').insert(body, (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.send(body);
-    });
-});
-
-// POST
 //  Delete, all functions
 
 app.delete('/technology/:id', (req, res) => {
@@ -790,3 +509,4 @@ MongoClient.connect(dbURL, {
         console.log("Nevvord server started");
     });
 });
+*/
