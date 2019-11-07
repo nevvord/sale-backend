@@ -1,5 +1,5 @@
-function putPtojectInner (req, res) {
-    db.Projects.updateOne({ _id: req.body._id }, { inner: req.body.inner }, error => {
+function putSpecializationInner (req, res) {
+    db.Specializations.updateOne({ _id: req.body._id }, { inner: req.body.inner }, (error) => {
         if (error) return res.status(500).send({
             msg: "Неудалось внести изменения в HTML проекта"
         })
@@ -9,4 +9,4 @@ function putPtojectInner (req, res) {
     })
 }
 
-module.exports = putPtojectInner
+module.exports = putSpecializationInner

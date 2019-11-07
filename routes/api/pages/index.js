@@ -1,10 +1,8 @@
 function getPage(req, res) {
-    db.Pages.find().lean().exec((err, pages) => {
+    db.Pages.find().sort('position').exec((err, pages) => {
         if (err) {
-            res
-                .status(500)
-                .send({
-                    msg: "Не получилось найти страницы",
+            return res.status(500).send({
+                    msg: "Не удалось найти страницы",
                     err
                 })
         }
@@ -16,12 +14,17 @@ function postPage(req, res) {
     const  body = {
         name: req.body.name,
         inner: req.body.inner,
-        display: req.body.display
+        display: req.body.display,
+        position: req.body.position
     }
 
     db.Pages.create(body, (err, resultat) => {
         if (err) return res.status(500).send({err})
-        res.send({resultat})
+        
+        res.send({
+            msg: "Страница добавленна успешно",
+            resultat
+        })
     })
 }
 

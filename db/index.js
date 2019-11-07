@@ -20,5 +20,6 @@ module.exports = () => {
         Projects : require('./models/projects')(mongoose, connection),
         Specializations : require('./models/specializations')(mongoose, connection),
         Pages : require('./models/pages')(mongoose, connection),
+        Files : require('./models/files')(mongoose, connection),
     }
 }

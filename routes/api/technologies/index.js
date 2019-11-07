@@ -1,9 +1,7 @@
 function getTechnologies(req, res) {
     db.Technologies.find().lean().exec((err, technologies) => {
         if (err) {
-            res
-                .status(500)
-                .send({
+            return res.status(500).send({
                     msg: "Не получилось найти технологии",
                     err
                 })
@@ -21,6 +19,7 @@ function postTechnology(req, res) {
 
     db.Technologies.create(body, (err, resultat) => {
         if (err) return res.status(500).send({err})
+        
         res.send({
             msg: "Технология добавленна успешно",
             resultat

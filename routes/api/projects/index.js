@@ -1,9 +1,7 @@
 function getProjects(req, res) {
     db.Projects.find().lean().exec((err, projects) => {
         if (err) {
-            res
-                .status(500)
-                .send({
+            return res.status(500).send({
                     msg: "Не получилось найти технологии",
                     err
                 })
