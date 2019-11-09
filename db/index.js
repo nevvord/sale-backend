@@ -21,5 +21,7 @@ module.exports = () => {
         Specializations : require('./models/specializations')(mongoose, connection),
         Pages : require('./models/pages')(mongoose, connection),
         Files : require('./models/files')(mongoose, connection),
+        Carousel : require('./models/carousel')(mongoose, connection),
+        Inner : require('./models/hp-inner')(mongoose, connection),
     }
 }

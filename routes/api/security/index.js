@@ -1,15 +1,20 @@
-const uuid = require('uuid')
-const jwt = require('jsonwebtoken')
-const { privatKey, mail } = require('config')
+const { ip } = require('config')
 
 module.exports = (req, res, next) => {
-        const token = req.body.token
-        
-    if (!req.cookies.refresh){
-        return res.status(403).send({
-            msg: "Автарезируйтесь для работы с сервером. Ваш рефреш токен отсутствует."
+    let auth = false
+    ip.forEach(element => {
+        if(element === req.connection.remoteAddress){
+            auth = true
+        }
+    })
+
+    if(auth){
+        next()
+    }else{
+        res.status(403).send({
+            msg: "Ваш IP отсутствует в допуске."
         })
     }
     
-    next()
+    
 }

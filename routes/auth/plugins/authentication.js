@@ -44,7 +44,7 @@ function authentication(req, res) {
     }
     if (err) {
       return res
-              .status(500)
+              .status(403)
               .send({
                 msg: "Ошибка серверу неполучилось инициализировать токен",
                 err

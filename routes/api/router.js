@@ -28,9 +28,19 @@ const { getFiles, postFile} = require('./files')
 const deleteFile = require('./files/delete')
 //===== Security =====
 const security = require('./security')
+//===== Carousel =====
+const   postCarousel = require('./carousel/post'),
+        getCaurousel = require('./carousel/get'),
+        putCaurousel = require('./carousel/put'),
+        deleteCaurousel = require('./carousel/delete'),
+//===== Inner =====
+        getInner = require('./hpInner/get'),
+        putInner = require('./hpInner/put')
 
 router
     //===== Get =====
+    .get('/inner', getInner)
+    .get('/carousel', getCaurousel)
     .get('/getfiles', getFiles)
     .get('/works', getWorks)
     .get('/technologies', getTechnologies)
@@ -39,6 +49,12 @@ router
     .get('/pages', getPage)
     //==== Security ====
     .use(security)
+    //===== Inner =====
+    .put('/putinner/:id', putInner)
+    //===== Carousel =====
+    .post('/addcarousel', multer.single('image'), postCarousel)
+    .delete('/deletecarousel/:id', deleteCaurousel)
+    .put('/putcarousel/:id', multer.single('image'), putCaurousel)
     //===== Files =====
     .post('/addfile', multer.single('image'), postFile)
     .delete('/deletefile/:id', deleteFile)

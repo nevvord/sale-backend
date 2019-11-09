@@ -32,11 +32,9 @@ function login(req, res) {
   }
 
   if (pass !== password) {
-    return res
-            .status(400)
-            .send({
-              msg: "Введен неверный пароль"
-            })
+    return res.status(400).send({
+        msg: "Введен неверный пароль"
+      })
   }
 
   const refreshToken = uuid()
@@ -47,15 +45,12 @@ function login(req, res) {
 
   jwt.sign(bodyToken, privatKey, (err, token) => {
     if (err) {
-      return res
-              .status(500)
-              .send({
-                msg: "Неудалось создать токен",
-                err
-              })
+      return res.status(500).send({
+          msg: "Неудалось создать токен",
+          err
+        })
     }
-    res
-      .cookie('refresh', refreshToken, {
+    res.cookie('refresh', refreshToken, {
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 * 3
       })

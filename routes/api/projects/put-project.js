@@ -1,21 +1,15 @@
 const fs = require('fs')
 
 function putProject(req, res) {
-    console.log(req.file);
-    
-    let body = {}
+    let body = {
+        name: req.body.name,
+        link: req.body.link,
+        description: req.body.description
+    }
     if (req.file) {
         body = {
-            name: req.body.name,
-            link: req.body.link,
-            description: req.body.description,
+            ...body,
             file: req.file.filename
-        }
-    }else{
-        body = {
-            name: req.body.name,
-            link: req.body.link,
-            description: req.body.description
         }
     }
 

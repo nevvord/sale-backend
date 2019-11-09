@@ -7,8 +7,6 @@ function putPage(req, res) {
     }
     db.Pages.updateOne({ _id: req.params.id }, { ...body }, error => {
         if (error) {
-            console.log(error);
-            
             return res
                 .status(500)
                 .send({
