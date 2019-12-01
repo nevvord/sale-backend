@@ -1,11 +1,11 @@
-//const fs = require('fs');
 const   express         =   require('express')
 const   bodyParser      =   require('body-parser')
 const   cookieparser    =   require('cookie-parser')
 const   db              =   require('./db/index')()
 const   cors            =   require('cors')
 const   multer          =   require('./plugins/multer')
-
+//==== Middleware =====
+const   verifyToken     =   require('./middleware/verifyToken')
 //===== Glogal CFG =====
 global.db       = db
 global.express  = express
@@ -28,18 +28,18 @@ app.use(cors({
 app.use(cookieparser())
 
 //===== Routes =====
-const auth = require('./routes/auth')
-const api = require('./routes/api/')
+const auth = require('./router/auth')
+const api = require('./router/api')
+const store = require('./router/store')
 
 app.get('/', (req, res) => {
     res.send({
         api: "worked"
     })
 })
-app.use('/user', auth.router)
-app.use('/api', api.router)
+app.use('/auth', auth.router)
+app.use('/api', verifyToken , api.router)
+app.use('/store', verifyToken , store.router)
 
 //==== Listen Requests =====
-app.listen(serverConfig.port || '3377', serverConfig.host || 'localhost', () => {
-    console.log(`Server has been started in ${serverConfig.host}:${serverConfig.port}`);
-})
+app.listen(serverConfig.port, () => console.log(`Server has been running in ${serverConfig.host}:${serverConfig.port}`))

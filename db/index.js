@@ -2,7 +2,7 @@ const   mongoose        =   require('mongoose')
 //===== Config =====
 const   { dbConfig }    =   require('config')
 //===== DB =====
-const   connection      =   mongoose.createConnection(`mongodb://${dbConfig.host}/${dbConfig.name}`, {useNewUrlParser: true})
+const   connection      =   mongoose.createConnection(`mongodb://${dbConfig.host}/${dbConfig.name}`, {useNewUrlParser: true, useUnifiedTopology: true})
 
 //===== Connections =====
 connection.on('connected',      ()      => { console.log(`Mongoose conected to ${dbConfig.name} db`)})
@@ -15,13 +15,7 @@ module.exports = () => {
     //===== Return models =====
     return{
         connection,
-        Works : require('./models/works')(mongoose, connection),
-        Technologies : require('./models/technologies')(mongoose, connection),
-        Projects : require('./models/projects')(mongoose, connection),
-        Specializations : require('./models/specializations')(mongoose, connection),
-        Pages : require('./models/pages')(mongoose, connection),
-        Files : require('./models/files')(mongoose, connection),
-        Carousel : require('./models/carousel')(mongoose, connection),
-        Inner : require('./models/hp-inner')(mongoose, connection),
+        Users : require('./models/users')(mongoose, connection),
+        CreateStores : require('./models/createStores')(mongoose, connection),
     }
 }
