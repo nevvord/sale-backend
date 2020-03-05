@@ -31,6 +31,7 @@ app.use(cookieparser())
 const auth = require('./router/auth')
 const api = require('./router/api')
 const store = require('./router/store')
+const crm = require('./router/crm')
 
 app.get('/', (req, res) => {
     res.send({
@@ -40,6 +41,7 @@ app.get('/', (req, res) => {
 app.use('/auth', auth.router)
 app.use('/api', verifyToken , api.router)
 app.use('/store', verifyToken , store.router)
+app.use('/crm' , crm.router)
 
 //==== Listen Requests =====
 app.listen(serverConfig.port, () => console.log(`Server has been running in ${serverConfig.host}:${serverConfig.port}`))

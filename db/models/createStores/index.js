@@ -6,5 +6,7 @@ module.exports = (mongoose, connection) =>
         storeName: { type: String, required: true },
         fullName: { type: String, required: true },
         phone: { type: String, required: true },
-        updated: { type: Date, default: Date.now }
+        updated: { type: Date, default: Date.now },
+        mainID: String,
+        status: {type: Boolean, default: false}
     }))

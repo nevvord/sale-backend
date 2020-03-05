@@ -17,5 +17,7 @@ module.exports = () => {
         connection,
         Users : require('./models/users')(mongoose, connection),
         CreateStores : require('./models/createStores')(mongoose, connection),
+        UpWorks : require('./models/upWorks')(mongoose, connection),
+        Admins: require('./models/Admin')(mongoose, connection)
     }
 }

@@ -4,7 +4,7 @@ module.exports = (req, res) => {
         if (err) return res.status(500).send({msg: 'Salt error.', err})
         bcryptjs.hash(req.body.password, salt, (err, hash) => {
             if (err) return res.status(500).send({msg: 'Hash error.', err})
-            db.Users.create({...req.body, password: hash}, (error, resultat) => {
+            db.Admins.create({...req.body, password: hash}, (error, resultat) => {
                 if (error)  return res.status(500).send({error})
                 res.send({ msg: "Registration success.", resultat })
             })
